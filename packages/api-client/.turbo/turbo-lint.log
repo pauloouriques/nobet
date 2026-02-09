@@ -1,0 +1,6 @@
+
+
+> @nobet/api-client@1.0.0 lint /Users/danilofreitas/workspace/ot/nobet/packages/api-client
+> biome check .
+
+[0m[34mChecked [0m[0m[34m5[0m[0m[34m [0m[0m[34mfiles[0m[0m[34m in [0m[0m[34m2[0m[0m[2m[34mms[0m[0m[34m.[0m[0m[34m No fixes applied.[0m
