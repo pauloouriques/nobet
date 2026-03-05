@@ -8,6 +8,7 @@ import { serve } from "@hono/node-server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { auth } from "./auth.js";
 import { errorHandler, logger } from "./middleware/index.js";
 import { createContext } from "./trpc/context.js";
 import { appRouter } from "./trpc/router.js";
@@ -27,13 +28,18 @@ app.use(
   })
 );
 
+// Better Auth routes
+app.all("/api/auth/*", (c) => {
+  return auth.handler(c.req.raw);
+});
+
 // tRPC endpoint
 app.all("/trpc/*", async (c) => {
   return fetchRequestHandler({
     endpoint: "/trpc",
     req: c.req.raw,
     router: appRouter,
-    createContext,
+    createContext: ({ req }) => createContext(req),
   });
 });
 
@@ -42,14 +48,12 @@ app.get("/health", (c) => {
   return c.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// Local development server
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const port = 3000;
-  console.log(`🚀 Server running at http://localhost:${port}`);
-  serve({
-    fetch: app.fetch,
-    port,
-  });
-}
+// Start server
+const port = 3000;
+console.log(`Server running at http://localhost:${port}`);
+serve({
+  fetch: app.fetch,
+  port,
+});
 
 export default app;

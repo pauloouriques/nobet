@@ -8,6 +8,27 @@
       "when": 1770569012063,
       "tag": "0000_busy_marvel_zombies",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771553377426,
+      "tag": "0001_flaky_norman_osborn",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771555455628,
+      "tag": "0002_calm_magdalene",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771555697353,
+      "tag": "0003_premium_amazoness",
+      "breakpoints": true
     }
   ]
 }
