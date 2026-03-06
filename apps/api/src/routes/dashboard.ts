@@ -1,4 +1,4 @@
-import { bets, matches, users } from "@nobet/db";
+import { events, bets, users } from "@nobet/db";
 import { and, count, eq, sql, sum } from "drizzle-orm";
 import { protectedProcedure, router } from "../trpc/trpc.js";
 
@@ -79,17 +79,17 @@ export const dashboardRouter = router({
     const recentLosses = await ctx.db
       .select({
         id: bets.id,
-        matchId: bets.matchId,
-        homeTeam: matches.homeTeam,
-        awayTeam: matches.awayTeam,
-        league: matches.league,
+        eventId: bets.eventId,
+        homeTeam: events.homeTeam,
+        awayTeam: events.awayTeam,
+        league: events.sportTitle,
         selection: bets.selection,
         odds: bets.odds,
         stake: bets.stake,
         createdAt: bets.createdAt,
       })
       .from(bets)
-      .innerJoin(matches, eq(bets.matchId, matches.id))
+      .innerJoin(events, eq(bets.eventId, events.id))
       .where(and(eq(bets.userId, userId), eq(bets.status, "lost")))
       .orderBy(sql`${bets.createdAt} desc`)
       .limit(10);

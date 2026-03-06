@@ -1,4 +1,4 @@
-import { bets, matches, users } from "@nobet/db";
+import { events, bets, users } from "@nobet/db";
 import { placeBetSchema } from "@nobet/shared";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
@@ -11,15 +11,15 @@ export const betsRouter = router({
     const userId = ctx.user.id;
 
     // Fetch match and validate it's still bettable
-    const [match] = await ctx.db.select().from(matches).where(eq(matches.id, input.matchId));
+    const [ev] = await ctx.db.select().from(events).where(eq(events.id, input.eventId));
 
-    if (!match) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Match not found" });
+    if (!ev) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
     }
-    if (match.status === "finished") {
+    if (ev.completed) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Match has already finished",
+        message: "Event has already finished",
       });
     }
 
@@ -47,7 +47,7 @@ export const betsRouter = router({
       .insert(bets)
       .values({
         userId,
-        matchId: input.matchId,
+        eventId: input.eventId,
         selection: input.selection,
         market: input.market,
         odds: String(input.odds),
@@ -77,10 +77,10 @@ export const betsRouter = router({
       const userBets = await ctx.db
         .select({
           id: bets.id,
-          matchId: bets.matchId,
-          homeTeam: matches.homeTeam,
-          awayTeam: matches.awayTeam,
-          league: matches.league,
+          eventId: bets.eventId,
+          homeTeam: events.homeTeam,
+          awayTeam: events.awayTeam,
+          league: events.sportTitle,
           selection: bets.selection,
           market: bets.market,
           odds: bets.odds,
@@ -91,7 +91,7 @@ export const betsRouter = router({
           resolvedAt: bets.resolvedAt,
         })
         .from(bets)
-        .innerJoin(matches, eq(bets.matchId, matches.id))
+        .innerJoin(events, eq(bets.eventId, events.id))
         .where(and(...conditions))
         .orderBy(desc(bets.createdAt))
         .limit(input.limit)

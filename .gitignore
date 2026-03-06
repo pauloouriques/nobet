@@ -4,8 +4,11 @@
 
 # Dependencies
 **/node_modules
+/apps/**/node_modules
 .pnp
 .pnp.js
+.pnpm-store
+/packages
 
 # Testing
 coverage/
@@ -14,6 +17,7 @@ coverage/
 
 # Production builds
 dist/
+/apps/**/dist/
 build/
 out/
 .next/
@@ -21,6 +25,11 @@ out/
 
 # Environment variables
 .env
+/apps/**/.evn
+/apps/**/.env.local
+/apps/**/.env.development.local
+/apps/**/.env.test.local
+/apps/**/.env.production.local
 .env.local
 .env.development.local
 .env.test.local

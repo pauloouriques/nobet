@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useBetSlip } from "../../context/bet-slip-context";
-import type { BetSelection } from "../../data/mock-matches";
+import type { BetSelection } from "../../types/betting";
 
 interface OddsButtonProps {
   label: string;

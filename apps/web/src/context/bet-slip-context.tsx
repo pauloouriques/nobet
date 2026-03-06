@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useState } from "react";
-import type { BetSelection } from "../data/mock-matches";
+import type { BetSelection } from "../types/betting";
 
 interface BetSlipContextValue {
   selections: BetSelection[];

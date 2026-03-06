@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { useState } from "react";
-import type { Match } from "../../data/mock-matches";
+import type { Match } from "../../types/betting";
 import { OddsButton } from "./odds-button";
 
 interface FeaturedBannerProps {
@@ -10,17 +10,27 @@ interface FeaturedBannerProps {
 }
 
 const SPORT_COLORS: Record<string, string> = {
-  football: "from-green-900/60 to-[#1e1e1e]",
-  basketball: "from-orange-900/60 to-[#1e1e1e]",
-  tennis: "from-yellow-900/60 to-[#1e1e1e]",
-  "american-football": "from-blue-900/60 to-[#1e1e1e]",
+  soccer_epl: "from-green-900/60 to-[#1e1e1e]",
+  soccer_spain_la_liga: "from-green-900/60 to-[#1e1e1e]",
+  soccer_uefa_champs_league: "from-green-900/60 to-[#1e1e1e]",
+  basketball_nba: "from-orange-900/60 to-[#1e1e1e]",
+  basketball_ncaab: "from-orange-900/60 to-[#1e1e1e]",
+  tennis_atp_indian_wells: "from-yellow-900/60 to-[#1e1e1e]",
+  tennis_wta_indian_wells: "from-yellow-900/60 to-[#1e1e1e]",
+  americanfootball_nfl: "from-blue-900/60 to-[#1e1e1e]",
+  americanfootball_ncaaf: "from-blue-900/60 to-[#1e1e1e]",
 };
 
 const SPORT_EMOJI: Record<string, string> = {
-  football: "⚽",
-  basketball: "🏀",
-  tennis: "🎾",
-  "american-football": "🏈",
+  soccer_epl: "⚽",
+  soccer_spain_la_liga: "⚽",
+  soccer_uefa_champs_league: "⚽",
+  basketball_nba: "🏀",
+  basketball_ncaab: "🏀",
+  tennis_atp_indian_wells: "🎾",
+  tennis_wta_indian_wells: "🎾",
+  americanfootball_nfl: "🏈",
+  americanfootball_ncaaf: "🏈",
 };
 
 export function FeaturedBanner({ matches, className }: FeaturedBannerProps) {
@@ -31,14 +41,29 @@ export function FeaturedBanner({ matches, className }: FeaturedBannerProps) {
 
   const hasThreeWay = match.odds.draw !== undefined;
   const matchName = `${match.homeTeam.name} v ${match.awayTeam.name}`;
-  const gradientClass = SPORT_COLORS[match.sport] ?? "from-slate-900/60 to-[#1e1e1e]";
+  const gradientClass =
+    SPORT_COLORS[match.sport] ??
+    (match.sport.startsWith("soccer")
+      ? "from-green-900/60 to-[#1e1e1e]"
+      : match.sport.startsWith("basketball")
+        ? "from-orange-900/60 to-[#1e1e1e]"
+        : "from-slate-900/60 to-[#1e1e1e]");
+  const emoji =
+    SPORT_EMOJI[match.sport] ??
+    (match.sport.startsWith("soccer")
+      ? "⚽"
+      : match.sport.startsWith("basketball")
+        ? "🏀"
+        : match.sport.startsWith("tennis")
+          ? "🎾"
+          : "🏆");
 
   return (
     <div className={cn("relative overflow-hidden rounded-lg", className)}>
       <div className={cn("bg-gradient-to-r p-4 sm:p-6", gradientClass, "bg-[#1a2a3a]")}>
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-lg">{SPORT_EMOJI[match.sport] ?? "🏆"}</span>
+            <span className="text-lg">{emoji}</span>
             <div>
               <div className="text-[10px] font-medium uppercase tracking-wider text-[#7090b0]">
                 Featured

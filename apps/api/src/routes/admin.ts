@@ -1,10 +1,10 @@
-import { bets, matches, redemptions, rewards, users } from "@nobet/db";
+import { events, bets, redemptions, rewards, users } from "@nobet/db";
 import {
-  createMatchSchema,
+  createEventSchema,
   createRewardSchema,
   paginationSchema,
-  resolveMatchSchema,
-  updateMatchSchema,
+  resolveEventSchema,
+  updateEventSchema,
   updateRewardSchema,
   updateUserBalanceSchema,
 } from "@nobet/shared";
@@ -99,9 +99,10 @@ export const adminRouter = router({
       const userBets = await ctx.db
         .select({
           id: bets.id,
-          homeTeam: matches.homeTeam,
-          awayTeam: matches.awayTeam,
-          league: matches.league,
+          eventId: bets.eventId,
+          homeTeam: events.homeTeam,
+          awayTeam: events.awayTeam,
+          league: events.sportTitle,
           selection: bets.selection,
           odds: bets.odds,
           stake: bets.stake,
@@ -110,7 +111,7 @@ export const adminRouter = router({
           createdAt: bets.createdAt,
         })
         .from(bets)
-        .innerJoin(matches, eq(bets.matchId, matches.id))
+        .innerJoin(events, eq(bets.eventId, events.id))
         .where(eq(bets.userId, input.userId))
         .orderBy(desc(bets.createdAt))
         .limit(20);
@@ -145,26 +146,28 @@ export const adminRouter = router({
       return { success: true };
     }),
 
-  // ─── Matches ───────────────────────────────────────────────────────────────
+  // ─── Events ────────────────────────────────────────────────────────────────
 
-  listMatches: adminProcedure
+  listEvents: adminProcedure
     .input(
       paginationSchema.extend({
-        status: z.enum(["upcoming", "live", "finished", "all"]).default("all"),
+        completed: z.enum(["all", "upcoming", "finished"]).default("all"),
       })
     )
     .query(async ({ ctx, input }) => {
       const offset = (input.page - 1) * input.limit;
       const conditions = [];
-      if (input.status !== "all") {
-        conditions.push(eq(matches.status, input.status));
+      if (input.completed === "finished") {
+        conditions.push(eq(events.completed, true));
+      } else if (input.completed === "upcoming") {
+        conditions.push(eq(events.completed, false));
       }
       if (input.search) {
         conditions.push(
           or(
-            ilike(matches.homeTeam, `%${input.search}%`),
-            ilike(matches.awayTeam, `%${input.search}%`),
-            ilike(matches.league, `%${input.search}%`)
+            ilike(events.homeTeam, `%${input.search}%`),
+            ilike(events.awayTeam, `%${input.search}%`),
+            ilike(events.sportTitle, `%${input.search}%`)
           )
         );
       }
@@ -172,92 +175,85 @@ export const adminRouter = router({
       const [items, [{ total }]] = await Promise.all([
         ctx.db
           .select()
-          .from(matches)
+          .from(events)
           .where(conditions.length > 0 ? and(...conditions) : undefined)
-          .orderBy(desc(matches.startTime))
+          .orderBy(desc(events.commenceTime))
           .limit(input.limit)
           .offset(offset),
         ctx.db
-          .select({ total: count(matches.id) })
-          .from(matches)
+          .select({ total: count(events.id) })
+          .from(events)
           .where(conditions.length > 0 ? and(...conditions) : undefined),
       ]);
 
       return { items, total: Number(total), page: input.page, limit: input.limit };
     }),
 
-  createMatch: adminProcedure.input(createMatchSchema).mutation(async ({ ctx, input }) => {
-    const [match] = await ctx.db
-      .insert(matches)
+  createEvent: adminProcedure.input(createEventSchema).mutation(async ({ ctx, input }) => {
+    const id = `custom-${crypto.randomUUID()}`;
+    const [ev] = await ctx.db
+      .insert(events)
       .values({
+        id,
+        sportKey: input.sportKey,
+        sportTitle: input.sportTitle,
+        commenceTime: new Date(input.commenceTime),
         homeTeam: input.homeTeam,
         awayTeam: input.awayTeam,
-        league: input.league,
-        sport: input.sport,
-        oddsHome: input.oddsHome,
-        oddsDraw: input.oddsDraw ?? null,
-        oddsAway: input.oddsAway,
-        startTime: new Date(input.startTime),
-        status: "upcoming",
+        completed: false,
       })
       .returning();
 
-    return match;
+    return ev;
   }),
 
-  updateMatch: adminProcedure.input(updateMatchSchema).mutation(async ({ ctx, input }) => {
+  updateEvent: adminProcedure.input(updateEventSchema).mutation(async ({ ctx, input }) => {
     const { id, ...rest } = input;
     const updateData: Record<string, unknown> = {};
-
     if (rest.homeTeam !== undefined) updateData.homeTeam = rest.homeTeam;
     if (rest.awayTeam !== undefined) updateData.awayTeam = rest.awayTeam;
-    if (rest.league !== undefined) updateData.league = rest.league;
-    if (rest.sport !== undefined) updateData.sport = rest.sport;
-    if (rest.oddsHome !== undefined) updateData.oddsHome = rest.oddsHome;
-    if (rest.oddsDraw !== undefined) updateData.oddsDraw = rest.oddsDraw;
-    if (rest.oddsAway !== undefined) updateData.oddsAway = rest.oddsAway;
-    if (rest.status !== undefined) updateData.status = rest.status;
+    if (rest.sportTitle !== undefined) updateData.sportTitle = rest.sportTitle;
+    if (rest.sportKey !== undefined) updateData.sportKey = rest.sportKey;
+    if (rest.commenceTime !== undefined) updateData.commenceTime = new Date(rest.commenceTime);
+    if (rest.completed !== undefined) updateData.completed = rest.completed;
     if (rest.scoreHome !== undefined) updateData.scoreHome = rest.scoreHome;
     if (rest.scoreAway !== undefined) updateData.scoreAway = rest.scoreAway;
-    if (rest.startTime !== undefined) updateData.startTime = new Date(rest.startTime);
+    if (rest.result !== undefined) updateData.result = rest.result;
 
     const [updated] = await ctx.db
-      .update(matches)
+      .update(events)
       .set(updateData)
-      .where(eq(matches.id, id))
+      .where(eq(events.id, id))
       .returning();
 
     return updated;
   }),
 
-  resolveMatch: adminProcedure.input(resolveMatchSchema).mutation(async ({ ctx, input }) => {
-    const [match] = await ctx.db.select().from(matches).where(eq(matches.id, input.matchId));
+  resolveEvent: adminProcedure.input(resolveEventSchema).mutation(async ({ ctx, input }) => {
+    const [ev] = await ctx.db.select().from(events).where(eq(events.id, input.eventId));
 
-    if (!match) throw new TRPCError({ code: "NOT_FOUND", message: "Match not found" });
-    if (match.status === "finished") {
-      throw new TRPCError({ code: "BAD_REQUEST", message: "Match already resolved" });
+    if (!ev) throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+    if (ev.completed) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Event already resolved" });
     }
 
-    // Update match
     await ctx.db
-      .update(matches)
+      .update(events)
       .set({
-        status: "finished",
+        completed: true,
         result: input.result,
         scoreHome: input.scoreHome,
         scoreAway: input.scoreAway,
       })
-      .where(eq(matches.id, input.matchId));
+      .where(eq(events.id, input.eventId));
 
-    // Resolve all pending bets on this match
     const pendingBets = await ctx.db
       .select()
       .from(bets)
-      .where(and(eq(bets.matchId, input.matchId), eq(bets.status, "pending")));
+      .where(and(eq(bets.eventId, input.eventId), eq(bets.status, "pending")));
 
     let resolvedCount = 0;
     for (const bet of pendingBets) {
-      // Determine if bet won
       const betWon =
         (input.result === "home" && bet.selection === "Home") ||
         (input.result === "draw" && bet.selection === "Draw") ||
@@ -274,7 +270,6 @@ export const adminRouter = router({
         })
         .where(eq(bets.id, bet.id));
 
-      // Pay out winnings
       if (betWon && payout > 0) {
         await ctx.db
           .update(users)

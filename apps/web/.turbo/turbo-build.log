@@ -1,13 +1,18 @@
 
-> @nobet/web@1.0.0 build /Users/danilofreitas/workspace/ot/nobet/apps/web
+> @nobet/web@1.0.0 build /Users/pauloouriques/workspace/ot/nobet/apps/web
 > tsc -b && vite build
 
 [36mvite v6.4.1 [32mbuilding for production...[36m[39m
 transforming...
-[32m✓[39m 266 modules transformed.
+[32m✓[39m 2223 modules transformed.
 rendering chunks...
 computing gzip size...
 [2mdist/[22m[32mindex.html                 [39m[1m[2m  0.39 kB[22m[1m[22m[2m │ gzip:   0.27 kB[22m
-[2mdist/[22m[2massets/[22m[35mindex-g2p6FhaZ.css  [39m[1m[2m 15.28 kB[22m[1m[22m[2m │ gzip:   3.86 kB[22m
-[2mdist/[22m[2massets/[22m[36mindex-CSc9mbIO.js   [39m[1m[2m361.96 kB[22m[1m[22m[2m │ gzip: 113.15 kB[22m
-[32m✓ built in 1.16s[39m
+[2mdist/[22m[2massets/[22m[35mindex-De1-RZUw.css  [39m[1m[2m 50.14 kB[22m[1m[22m[2m │ gzip:   9.13 kB[22m
+[2mdist/[22m[2massets/[22m[36mindex-C_wLMCHs.js   [39m[1m[33m608.12 kB[39m[22m[2m │ gzip: 181.59 kB[22m
+[33m
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32m✓ built in 3.42s[39m

@@ -1,5 +1,5 @@
 import { ChevronRight } from "lucide-react";
-import type { Match } from "../../data/mock-matches";
+import type { Match } from "../../types/betting";
 import { LiveIndicator } from "./live-indicator";
 import { OddsButton } from "./odds-button";
 
@@ -17,13 +17,19 @@ export function MatchCard({ match, showLeague = true }: MatchCardProps) {
       {showLeague && (
         <div className="mb-1.5 flex items-center gap-1.5 text-[10px] text-[#7090b0]">
           <span>
-            {match.sport === "football"
+            {match.sport.startsWith("soccer")
               ? "⚽"
-              : match.sport === "basketball"
+              : match.sport.startsWith("basketball")
                 ? "🏀"
-                : match.sport === "tennis"
+                : match.sport.startsWith("tennis")
                   ? "🎾"
-                  : "🏆"}
+                  : match.sport.startsWith("americanfootball")
+                    ? "🏈"
+                    : match.sport.startsWith("icehockey")
+                      ? "🏒"
+                      : match.sport.startsWith("baseball")
+                        ? "⚾"
+                        : "🏆"}
           </span>
           <span className="font-medium text-[#5a8ab0]">{match.league}</span>
         </div>

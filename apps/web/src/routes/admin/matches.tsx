@@ -35,7 +35,7 @@ export const Route = createFileRoute("/admin/matches")({
   component: AdminMatches,
 });
 
-type StatusFilter = "all" | "upcoming" | "live" | "finished";
+type StatusFilter = "all" | "upcoming" | "finished";
 type MatchResult = "home" | "draw" | "away";
 
 function AdminMatches() {
@@ -55,60 +55,49 @@ function AdminMatches() {
   const [form, setForm] = useState({
     homeTeam: "",
     awayTeam: "",
-    league: "",
-    sport: "football",
-    oddsHome: "",
-    oddsDraw: "",
-    oddsAway: "",
-    startTime: "",
+    sportTitle: "",
+    sportKey: "soccer_epl",
+    commenceTime: "",
   });
 
   const utils = trpc.useUtils();
-  const listQuery = trpc.admin.listMatches.useQuery({ page, limit: 20, status });
-  const createMutation = trpc.admin.createMatch.useMutation({
+  const sportsQuery = trpc.odds.listSports.useQuery();
+  const listQuery = trpc.admin.listEvents.useQuery({ page, limit: 20, completed: status });
+  const createMutation = trpc.admin.createEvent.useMutation({
     onSuccess: () => {
-      utils.admin.listMatches.invalidate();
+      utils.admin.listEvents.invalidate();
       setCreateOpen(false);
       setForm({
         homeTeam: "",
         awayTeam: "",
-        league: "",
-        sport: "football",
-        oddsHome: "",
-        oddsDraw: "",
-        oddsAway: "",
-        startTime: "",
+        sportTitle: "",
+        sportKey: "soccer_epl",
+        commenceTime: "",
       });
     },
   });
-  const resolveMutation = trpc.admin.resolveMatch.useMutation({
+  const resolveMutation = trpc.admin.resolveEvent.useMutation({
     onSuccess: () => {
-      utils.admin.listMatches.invalidate();
+      utils.admin.listEvents.invalidate();
       setResolveDialog(null);
     },
   });
 
   const totalPages = Math.ceil((listQuery.data?.total ?? 0) / 20);
 
-  const statusColor = (s: string) => {
-    if (s === "live") return "bg-green-900/40 text-green-400";
-    if (s === "finished") return "bg-[#2a2a2a] text-[#555]";
-    return "bg-blue-900/40 text-blue-400";
-  };
-
   return (
     <div className="p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">Match Management</h1>
-          <p className="text-sm text-[#7090b0]">{listQuery.data?.total ?? "—"} total matches</p>
+          <h1 className="text-xl font-bold text-white">Event Management</h1>
+          <p className="text-sm text-[#7090b0]">{listQuery.data?.total ?? "—"} total events</p>
         </div>
         <Button
           onClick={() => setCreateOpen(true)}
           className="bg-yellow-400 font-bold text-black hover:bg-yellow-300"
         >
           <Plus className="mr-1.5 h-4 w-4" />
-          Create Match
+          Create Event
         </Button>
       </div>
 
@@ -120,7 +109,7 @@ function AdminMatches() {
         }}
       >
         <TabsList className="flex h-9 w-fit items-center rounded-lg bg-[#1e1e1e] border border-[#2a2a2a] gap-0 p-1">
-          {(["all", "upcoming", "live", "finished"] as const).map((s) => (
+          {(["all", "upcoming", "finished"] as const).map((s) => (
             <TabsTrigger
               key={s}
               value={s}
@@ -136,7 +125,7 @@ function AdminMatches() {
         <Table>
           <TableHeader>
             <TableRow className="border-[#2a2a2a] hover:bg-transparent">
-              {["Match", "League", "Odds (1/X/2)", "Status", "Start Time", "Actions"].map((h) => (
+              {["Event", "League", "Status", "Start Time", "Actions"].map((h) => (
                 <TableHead key={h} className="text-[11px] font-medium uppercase text-[#7090b0]">
                   {h}
                 </TableHead>
@@ -147,7 +136,7 @@ function AdminMatches() {
             {listQuery.isLoading
               ? ["a", "b", "c", "d", "e"].map((k) => (
                   <TableRow key={k} className="border-[#2a2a2a]">
-                    {["c1", "c2", "c3", "c4", "c5", "c6"].map((c) => (
+                    {["c1", "c2", "c3", "c4", "c5"].map((c) => (
                       <TableCell key={c}>
                         <Skeleton className="h-4 w-20" />
                       </TableCell>
@@ -161,29 +150,26 @@ function AdminMatches() {
                         <p>
                           {m.homeTeam} v {m.awayTeam}
                         </p>
-                        {m.status === "finished" && m.result && (
+                        {m.completed && m.result && (
                           <p className="text-[10px] text-green-400">
                             Result: {m.result} ({m.scoreHome}–{m.scoreAway})
                           </p>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs text-[#a0a0a0]">{m.league}</TableCell>
-                    <TableCell className="text-xs font-mono text-white">
-                      {Number(m.oddsHome).toFixed(2)}
-                      {m.oddsDraw && ` / ${Number(m.oddsDraw).toFixed(2)}`}
-                      {` / ${Number(m.oddsAway).toFixed(2)}`}
-                    </TableCell>
+                    <TableCell className="text-xs text-[#a0a0a0]">{m.sportTitle}</TableCell>
                     <TableCell>
-                      <Badge className={`border-0 text-[10px] ${statusColor(m.status)}`}>
-                        {m.status}
+                      <Badge
+                        className={`border-0 text-[10px] ${m.completed ? "bg-[#2a2a2a] text-[#555]" : "bg-blue-900/40 text-blue-400"}`}
+                      >
+                        {m.completed ? "finished" : "upcoming"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs text-[#555]">
-                      {new Date(m.startTime).toLocaleString()}
+                      {new Date(m.commenceTime).toLocaleString()}
                     </TableCell>
                     <TableCell>
-                      {m.status !== "finished" && (
+                      {!m.completed && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -235,7 +221,7 @@ function AdminMatches() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="border-[#2a2a2a] bg-[#1e1e1e] text-white max-w-lg">
           <DialogHeader>
-            <DialogTitle>Create Match</DialogTitle>
+            <DialogTitle>Create Event</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4">
             {[
@@ -252,9 +238,9 @@ function AdminMatches() {
                 placeholder: "e.g. Arsenal",
               },
               {
-                id: "league",
-                label: "League",
-                key: "league" as const,
+                id: "sportTitle",
+                label: "League / Title",
+                key: "sportTitle" as const,
                 placeholder: "e.g. Premier League",
                 colSpan: true,
               },
@@ -274,64 +260,34 @@ function AdminMatches() {
             ))}
             <div>
               <Label className="text-xs text-[#7090b0]">Sport</Label>
-              <Select value={form.sport} onValueChange={(v) => setForm({ ...form, sport: v })}>
+              <Select
+                value={form.sportKey}
+                onValueChange={(v) => setForm({ ...form, sportKey: v })}
+              >
                 <SelectTrigger className="mt-1 border-[#3a3a3a] bg-[#2a2a2a] text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="border-[#2a2a2a] bg-[#1e1e1e] text-white">
-                  {["football", "basketball", "tennis", "american-football", "esports"].map((s) => (
-                    <SelectItem key={s} value={s} className="hover:bg-[#2a2a2a]">
-                      {s}
+                  {(sportsQuery.data ?? []).map((s) => (
+                    <SelectItem key={s.id} value={s.id} className="hover:bg-[#2a2a2a]">
+                      {s.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label htmlFor="startTime" className="text-xs text-[#7090b0]">
+              <Label htmlFor="commenceTime" className="text-xs text-[#7090b0]">
                 Start Time
               </Label>
               <Input
-                id="startTime"
+                id="commenceTime"
                 type="datetime-local"
-                value={form.startTime}
-                onChange={(e) => setForm({ ...form, startTime: e.target.value })}
+                value={form.commenceTime}
+                onChange={(e) => setForm({ ...form, commenceTime: e.target.value })}
                 className="mt-1 border-[#3a3a3a] bg-[#2a2a2a] text-white"
               />
             </div>
-            {[
-              {
-                id: "oddsHome",
-                label: "Odds Home (1)",
-                key: "oddsHome" as const,
-                placeholder: "2.10",
-              },
-              {
-                id: "oddsDraw",
-                label: "Odds Draw (X)",
-                key: "oddsDraw" as const,
-                placeholder: "3.40 (opt)",
-              },
-              {
-                id: "oddsAway",
-                label: "Odds Away (2)",
-                key: "oddsAway" as const,
-                placeholder: "3.20",
-              },
-            ].map(({ id, label, key, placeholder }) => (
-              <div key={id}>
-                <Label htmlFor={id} className="text-xs text-[#7090b0]">
-                  {label}
-                </Label>
-                <Input
-                  id={id}
-                  value={form[key]}
-                  onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                  placeholder={placeholder}
-                  className="mt-1 border-[#3a3a3a] bg-[#2a2a2a] text-white placeholder-[#555]"
-                />
-              </div>
-            ))}
           </div>
           {createMutation.error && (
             <p className="text-sm text-red-400">{createMutation.error.message}</p>
@@ -348,16 +304,17 @@ function AdminMatches() {
               disabled={
                 !form.homeTeam ||
                 !form.awayTeam ||
-                !form.oddsHome ||
-                !form.oddsAway ||
-                !form.startTime ||
+                !form.sportTitle ||
+                !form.commenceTime ||
                 createMutation.isPending
               }
               onClick={() =>
                 createMutation.mutate({
-                  ...form,
-                  startTime: new Date(form.startTime).toISOString(),
-                  oddsDraw: form.oddsDraw || undefined,
+                  homeTeam: form.homeTeam,
+                  awayTeam: form.awayTeam,
+                  sportTitle: form.sportTitle,
+                  sportKey: form.sportKey,
+                  commenceTime: new Date(form.commenceTime).toISOString(),
                 })
               }
               className="bg-yellow-400 font-bold text-black hover:bg-yellow-300"
@@ -372,7 +329,7 @@ function AdminMatches() {
       <Dialog open={!!resolveDialog} onOpenChange={() => setResolveDialog(null)}>
         <DialogContent className="border-[#2a2a2a] bg-[#1e1e1e] text-white">
           <DialogHeader>
-            <DialogTitle>Resolve Match</DialogTitle>
+            <DialogTitle>Resolve Event</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-[#a0a0a0]">
@@ -429,7 +386,7 @@ function AdminMatches() {
               </div>
             </div>
             <div className="rounded-md bg-yellow-400/10 border border-yellow-400/20 p-3 text-xs text-yellow-300">
-              All pending bets on this match will be automatically resolved and winnings paid out.
+              All pending bets on this event will be automatically resolved and winnings paid out.
             </div>
             {resolveMutation.error && (
               <p className="text-sm text-red-400">{resolveMutation.error.message}</p>
@@ -448,7 +405,7 @@ function AdminMatches() {
               onClick={() => {
                 if (!resolveDialog) return;
                 resolveMutation.mutate({
-                  matchId: resolveDialog.id,
+                  eventId: resolveDialog.id,
                   result: resolveResult,
                   scoreHome: Number(resolveScoreHome),
                   scoreAway: Number(resolveScoreAway),
